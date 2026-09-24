@@ -1,6 +1,6 @@
 # CUDA Neural Network Engine — Build System
 
-.PHONY: all build test benchmark clean
+.PHONY: all build test benchmark lint format clean
 
 all: build
 
@@ -14,8 +14,8 @@ benchmark:
 	python benchmarks/benchmark.py
 
 lint:
-	black --check tests benchmarks || true
-	flake8 tests benchmarks --max-line-length=100 || true
+	black --check tests benchmarks
+	flake8 tests benchmarks --max-line-length=100 --ignore=E501,W503
 
 format:
 	black tests benchmarks

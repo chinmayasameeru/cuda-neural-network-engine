@@ -6,7 +6,7 @@ cuda_lib = "/usr/local/cuda/lib64"
 
 setup(
     name="cnn_engine",
-    version="0.1.0",
+    version="0.2.0",
     description="CUDA Neural Network Engine",
     ext_modules=[
         Extension(
@@ -16,6 +16,8 @@ setup(
                 "src/tensor.cpp",
                 "src/layers.cpp",
                 "src/optimizers.cpp",
+                "src/advanced_layers.cpp",
+                "src/schedulers.cpp",
             ],
             include_dirs=["include", cuda_include, "/usr/include/python3.10"],
             library_dirs=[cuda_lib],
