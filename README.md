@@ -16,7 +16,6 @@ A CUDA C++ deep learning library with Python bindings. Implements tensor operati
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
 - [Implementation Details](#implementation-details)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [FAQ](#faq)
 - [License](#license)
@@ -186,62 +185,7 @@ for epoch in range(100):
 
 ---
 
-## Roadmap
-
-### v0.1.0 — Completed
-
-- [x] Core tensor operations (allocation, transfer, arithmetic, reduction, reshape)
-- [x] Autograd engine (gradient computation graph, reverse-mode differentiation)
-- [x] 14 layer types (Linear, Conv2D, BatchNorm, Pooling, Activations, Dropout, Flatten)
-- [x] Optimizers (SGD with momentum/weight decay, Adam with bias correction)
-- [x] Loss functions (CrossEntropy, MSE)
-- [x] Python bindings via pybind11 with numpy interop
-- [x] Comprehensive test suite (11 tests covering all components)
-- [x] Benchmark suite (matrix multiplication, training, CNN inference)
-- [x] CI/CD pipeline (linting, structure checks, required files)
-
-### v0.2.0 — Completed
-
-- [x] **ResidualBlock**: ResNet-style skip connections with configurable stride
-- [x] **LSTMCell**: Long Short-Term Memory for sequence processing
-- [x] **GRUCell**: Gated Recurrent Unit for sequence processing
-- [x] **MultiHeadAttention**: Transformer-style self-attention and cross-attention
-- [x] **LayerNorm**: Layer normalization for transformer architectures
-- [x] **StepLR**: Step learning rate scheduler (decay by gamma every N steps)
-- [x] **CosineAnnealingLR**: Cosine annealing schedule from initial to minimum LR
-- [x] **WarmupCosineLR**: Linear warmup followed by cosine decay
-- [x] **ReduceLROnPlateau**: Adaptive LR reduction when loss stops improving
-- [x] **Data Augmentation**: Random horizontal flip, random crop with padding, normalize, zero-pad
-- [x] **Model Serialization**: Save/load model weights in binary format
-- [x] **Expanded Test Suite**: 20+ tests including advanced layers and schedulers
-
-### v0.3.0 — In Progress
-
-- [ ] Mixed precision training (FP16/BF16)
-- [ ] Model serialization (ONNX export)
-- [ ] Improved kernel performance (tiling, shared memory)
-- [ ] ResNet-18/34/50 full architectures
-- [ ] Transformer encoder/decoder blocks
-- [ ] Performance profiling tools
-
-### v0.4.0 — Planned
-
-- [ ] Multi-GPU training (NCCL)
-- [ ] TensorRT inference backend
-- [ ] Distributed training
-- [ ] Quantization (INT8)
-- [ ] Memory optimization (gradient checkpointing, activation compression)
-
-### Future
-
-- [ ] Mobile deployment (Core ML, TFLite)
-- [ ] WebAssembly/WebGPU backend
-- [ ] Julia/Rust bindings
-- [ ] Visualization dashboard (training curves, model graphs)
-- [ ] Integration with HuggingFace datasets and tokenizers
-- [ ] Mixed precision automatic casting
-
----
+## Implementation Details
 
 ## Contributing
 

@@ -25,6 +25,11 @@ public:
     void train() override;
     void eval() override;
 
+    // Access layers by index
+    LayerPtr operator[](size_t i) { return layers_[i]; }
+    const LayerPtr operator[](size_t i) const { return layers_[i]; }
+    size_t size() const { return layers_.size(); }
+
 private:
     std::vector<LayerPtr> layers_;
 };
