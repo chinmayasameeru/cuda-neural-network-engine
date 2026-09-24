@@ -155,6 +155,11 @@ for epoch in range(100):
 | Softmax | `Softmax()` | Softmax activation |
 | Dropout | `Dropout(p=0.5)` | Dropout |
 | Flatten | `Flatten()` | Flatten spatial dims |
+| LayerNorm | `LayerNorm(shape)` | Layer normalization |
+| ResidualBlock | `ResidualBlock(in_c, out_c, stride=1)` | ResNet-style skip connection |
+| LSTMCell | `LSTMCell(input, hidden)` | LSTM recurrent cell |
+| GRUCell | `GRUCell(input, hidden)` | GRU recurrent cell |
+| MultiHeadAttention | `MultiHeadAttention(dim, heads)` | Transformer attention |
 
 ### Optimizers
 
@@ -162,6 +167,15 @@ for epoch in range(100):
 |-----------|-------------|
 | SGD | `SGD(params, lr=0.01, momentum=0.0, weight_decay=0.0)` |
 | Adam | `Adam(params, lr=0.001, betas=(0.9, 0.999))` |
+
+### Schedulers
+
+| Scheduler | Constructor | Description |
+|-----------|-------------|-------------|
+| StepLR | `StepLR(initial_lr, step_size, gamma=0.1)` | Decay LR every N steps |
+| CosineAnnealingLR | `CosineAnnealingLR(initial_lr, T_max, eta_min=0)` | Cosine schedule |
+| WarmupCosineLR | `WarmupCosineLR(initial_lr, warmup_steps, total_steps)` | Warmup then cosine |
+| ReduceLROnPlateau | `ReduceLROnPlateau(initial_lr, factor=0.1, patience=10)` | Reduce on plateau |
 
 ### Losses
 
@@ -174,44 +188,58 @@ for epoch in range(100):
 
 ## Roadmap
 
-### v0.1.0 — Current
+### v0.1.0 — Completed
 
-- [x] Core tensor operations
-- [x] Autograd engine
-- [x] 14 layer types
-- [x] SGD, Adam optimizers
-- [x] CrossEntropy, MSE losses
-- [x] Python bindings
-- [x] Test suite
-- [x] Benchmarks
-- [x] CI/CD pipeline
+- [x] Core tensor operations (allocation, transfer, arithmetic, reduction, reshape)
+- [x] Autograd engine (gradient computation graph, reverse-mode differentiation)
+- [x] 14 layer types (Linear, Conv2D, BatchNorm, Pooling, Activations, Dropout, Flatten)
+- [x] Optimizers (SGD with momentum/weight decay, Adam with bias correction)
+- [x] Loss functions (CrossEntropy, MSE)
+- [x] Python bindings via pybind11 with numpy interop
+- [x] Comprehensive test suite (11 tests covering all components)
+- [x] Benchmark suite (matrix multiplication, training, CNN inference)
+- [x] CI/CD pipeline (linting, structure checks, required files)
 
-### v0.2.0 — Next
+### v0.2.0 — Completed
 
-- [ ] Residual blocks (ResNet-18/34/50)
-- [ ] Recurrent layers (LSTM, GRU)
-- [ ] Transformer components (self-attention, multi-head attention)
+- [x] **ResidualBlock**: ResNet-style skip connections with configurable stride
+- [x] **LSTMCell**: Long Short-Term Memory for sequence processing
+- [x] **GRUCell**: Gated Recurrent Unit for sequence processing
+- [x] **MultiHeadAttention**: Transformer-style self-attention and cross-attention
+- [x] **LayerNorm**: Layer normalization for transformer architectures
+- [x] **StepLR**: Step learning rate scheduler (decay by gamma every N steps)
+- [x] **CosineAnnealingLR**: Cosine annealing schedule from initial to minimum LR
+- [x] **WarmupCosineLR**: Linear warmup followed by cosine decay
+- [x] **ReduceLROnPlateau**: Adaptive LR reduction when loss stops improving
+- [x] **Data Augmentation**: Random horizontal flip, random crop with padding, normalize, zero-pad
+- [x] **Model Serialization**: Save/load model weights in binary format
+- [x] **Expanded Test Suite**: 20+ tests including advanced layers and schedulers
+
+### v0.3.0 — In Progress
+
 - [ ] Mixed precision training (FP16/BF16)
-- [ ] Learning rate schedulers (Step, Cosine, Warmup)
-- [ ] Data augmentation (flip, rotate, normalize)
-- [ ] Model serialization (save/load weights)
+- [ ] Model serialization (ONNX export)
 - [ ] Improved kernel performance (tiling, shared memory)
+- [ ] ResNet-18/34/50 full architectures
+- [ ] Transformer encoder/decoder blocks
+- [ ] Performance profiling tools
 
-### v0.3.0
+### v0.4.0 — Planned
 
 - [ ] Multi-GPU training (NCCL)
 - [ ] TensorRT inference backend
-- [ ] ONNX export
 - [ ] Distributed training
 - [ ] Quantization (INT8)
+- [ ] Memory optimization (gradient checkpointing, activation compression)
 
 ### Future
 
-- [ ] Mobile deployment
+- [ ] Mobile deployment (Core ML, TFLite)
 - [ ] WebAssembly/WebGPU backend
 - [ ] Julia/Rust bindings
-- [ ] Visualization dashboard
-- [ ] Integration with HuggingFace datasets
+- [ ] Visualization dashboard (training curves, model graphs)
+- [ ] Integration with HuggingFace datasets and tokenizers
+- [ ] Mixed precision automatic casting
 
 ---
 
@@ -233,7 +261,7 @@ make lint
 ## FAQ
 
 **Q: How does this compare to PyTorch?**
-A: PyTorch is production-ready with extensive optimizations and a large ecosystem. This engine is a learning resource that implements core concepts directly in CUDA for educational purposes.
+A: PyTorch is production-ready with extensive optimizations, a large ecosystem, and community support. This engine is a learning resource that implements core concepts directly in CUDA for educational purposes.
 
 **Q: Can I use this for production?**
 A: No. Use PyTorch, TensorFlow, or JAX for production workloads.
@@ -260,7 +288,22 @@ A: CUDA 12.x. The code uses features available in CUDA 11.0+.
 A: Linux is the primary target. Windows may work with Visual Studio and CUDA Toolkit but is not officially tested.
 
 **Q: How do I add a new layer?**
-A: 1) Define class in `include/layers.h`, 2) Implement forward/backward in `src/layers.cpp`, 3) Add Python binding in `bindings/python_bindings.cpp`, 4) Add tests.
+A: 1) Define class in `include/layers.h` or `include/advanced_layers.h`, 2) Implement forward/backward in `src/layers.cpp` or `src/advanced_layers.cpp`, 3) Add Python binding in `bindings/python_bindings.cpp`, 4) Add tests in `tests/test_engine.py`.
+
+**Q: What's the difference between BatchNorm2D and LayerNorm?**
+A: BatchNorm2D normalizes across the batch dimension (per-channel), commonly used in CNNs. LayerNorm normalizes across the feature dimension (per-sample), commonly used in Transformers and sequence models.
+
+**Q: How do I use the learning rate schedulers?**
+A: Create a scheduler, then call `scheduler.get_lr(step)` or `scheduler.update_loss(loss)` at each training step. Pass the returned LR to your optimizer.
+
+**Q: Can I save and load trained models?**
+A: Yes! Use `ModelSerializer::save(params, "model.bin")` to save and `ModelSerializer::load("model.bin")` to load. The format is a custom binary with magic number header.
+
+**Q: How do I use MultiHeadAttention?**
+A: `mha = cnn.MultiHeadAttention(embed_dim=256, num_heads=8)`. For self-attention: `output = mha(input)`. For cross-attention: `output = mha(query, key, value)`.
+
+**Q: Is GPU memory managed automatically?**
+A: Yes. The `MemoryArena` tracks all allocations. When a tensor is destroyed, its GPU memory is freed immediately. Use `MemoryArena::instance().stats()` to monitor usage.
 
 ---
 
