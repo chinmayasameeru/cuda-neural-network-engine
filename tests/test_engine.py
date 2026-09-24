@@ -125,6 +125,7 @@ def test_mnist_loop():
 # v0.2.0 Tests - Advanced Layers
 # ============================================================
 
+
 def test_residual_block():
     """Test ResNet-style residual block."""
     model = cnn.Sequential()
@@ -189,6 +190,7 @@ def test_sequence_to_sequence():
 # ============================================================
 # v0.2.0 Tests - Schedulers
 # ============================================================
+
 
 def test_step_lr():
     """Test step learning rate scheduler."""
