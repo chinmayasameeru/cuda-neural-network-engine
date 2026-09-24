@@ -18,6 +18,7 @@ A CUDA C++ deep learning library with Python bindings. Implements tensor operati
 - [Implementation Details](#implementation-details)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
+- [FAQ](#faq)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
 
@@ -29,53 +30,37 @@ CUDA Neural Network Engine is a technical exploration of GPU-accelerated deep le
 
 **Key Principles:**
 
-- **Transparency**: Every operation is visible and auditable — no opaque framework magic
-- **Performance**: Custom CUDA kernels optimized for memory coalescing and shared memory usage
-- **Compatibility**: Python bindings via pybind11 with seamless numpy interop
-- **Correctness**: Comprehensive test suite with numerical gradient checking
+- **Transparency**: Every operation is visible and auditable
+- **Performance**: Custom CUDA kernels with memory coalescing and shared memory
+- **Compatibility**: Python bindings via pybind11 with numpy interop
+- **Correctness**: Comprehensive test suite with gradient checking
 
-**What this is:** A learning resource and research tool for understanding GPU computing and deep learning systems.
+**What this is:** A learning resource for understanding GPU computing and deep learning systems.
 
-**What this is not:** A production framework. Use PyTorch or TensorFlow for production workloads.
+**What this is not:** A production framework. Use PyTorch or TensorFlow for production.
 
 ---
 
 ## Architecture
 
-The engine follows a strict layered architecture where each layer only depends on the layer below it.
+The engine follows a strict layered architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Python API (pybind11)                        │
-│              Sequential, Module, Training Loop                   │
 ├─────────────────────────────────────────────────────────────────┤
 │                     Layer Definitions                             │
 │   Linear, Conv2D, BatchNorm, Pooling, Activations, Dropout      │
 ├─────────────────────────────────────────────────────────────────┤
 │                     Autograd Engine                               │
-│   Gradient graph construction, reverse-mode differentiation      │
 ├─────────────────────────────────────────────────────────────────┤
 │                     Tensor Operations                             │
-│   Allocation, transfer, arithmetic, reduction, reshape           │
 ├─────────────────────────────────────────────────────────────────┤
 │                     CUDA Kernels                                 │
-│   Element-wise, convolution, pooling, reduction kernels          │
 ├─────────────────────────────────────────────────────────────────┤
 │                     cuBLAS / CUDA Runtime                        │
-│   SGEMM, SGEMV, AXPY, SCAL, cudaMalloc, cudaMemcpy              │
 └─────────────────────────────────────────────────────────────────┘
 ```
-
-### Memory Management
-
-GPU memory is managed through a custom allocator that tracks allocations and provides:
-- Automatic deallocation on tensor destruction
-- Memory usage statistics
-- Gradient buffer reuse
-
-### Autograd Engine
-
-The autograd system records a gradient computation graph during the forward pass. Each operation on a tensor with `requires_grad=True` stores a closure that computes the input gradients given output gradients. Calling `backward()` traverses this graph in reverse topological order.
 
 ---
 
@@ -92,25 +77,13 @@ Benchmarks on NVIDIA RTX 3050 Ti (4GB VRAM, 2560 CUDA cores):
 | 512×1024×2048 | 6.72ms | 0.42ms | 16.0× |
 | 1024×2048×4096 | 52.3ms | 2.87ms | 18.2× |
 
-### CNN Training Throughput
+### CNN Throughput
 
-| Batch Size | ResNet-18 (images/sec) | VGG-16 (images/sec) |
-|------------|----------------------|---------------------|
-| 16 | 847 | 623 |
-| 32 | 1,243 | 891 |
-| 64 | 1,567 | 1,034 |
-
-*Note: Performance scales with GPU memory bandwidth and compute capability.*
-
-### Comparison with PyTorch
-
-| Metric | CUDA NN Engine | PyTorch 2.0+ | Ratio |
-|--------|---------------|--------------|-------|
-| Forward pass | 1.0× | 1.0× | ~1.0 |
-| Backward pass | 1.0× | 1.0× | ~1.0 |
-| Memory usage | Baseline | Baseline | ~1.0 |
-
-The engine achieves comparable performance to PyTorch for most operations because both rely on the same cuBLAS and CUDA primitives. The primary differences come from operator fusion and graph optimization, which PyTorch provides at a higher level.
+| Batch Size | ResNet-18 | VGG-16 |
+|------------|-----------|--------|
+| 16 | 847 img/s | 623 img/s |
+| 32 | 1,243 img/s | 891 img/s |
+| 64 | 1,567 img/s | 1,034 img/s |
 
 ---
 
@@ -118,90 +91,41 @@ The engine achieves comparable performance to PyTorch for most operations becaus
 
 ### Prerequisites
 
-- NVIDIA GPU with Compute Capability ≥ 6.0 (Pascal or newer)
+- NVIDIA GPU (Compute Capability ≥ 6.0)
 - CUDA Toolkit 12.x
-- C++17 compatible compiler (GCC 7+, Clang 5+)
+- C++17 compiler
 - Python 3.10+
-- 4GB+ GPU memory recommended
 
-### Build from Source
+### Build
 
 ```bash
 git clone https://github.com/chinmayasameeru/cuda-neural-network-engine.git
 cd cuda-neural-network-engine
-
 pip install pybind11 numpy
 python setup.py build_ext --inplace
-```
-
-### Verify Installation
-
-```bash
-python tests/test_engine.py
-python benchmarks/benchmark.py
 ```
 
 ---
 
 ## Quick Start
 
-### Minimal Example
-
 ```python
 import numpy as np
 import cnn_engine as cnn
 
-# Create model
 model = cnn.Sequential()
 model.add(cnn.Linear(784, 256))
 model.add(cnn.ReLU())
 model.add(cnn.Linear(256, 10))
 
-# Generate data
 X = np.random.randn(64, 784).astype(np.float32)
 y = np.zeros((64, 10), dtype=np.float32)
 y[np.arange(64), np.random.randint(0, 10, 64)] = 1.0
 
-# Training setup
 optimizer = cnn.Adam(model.parameters(), lr=0.001)
 loss_fn = cnn.CrossEntropyLoss()
 
-# Training loop
 for epoch in range(100):
-    optimizer.zero_grad()
-    logits = model(X)
-    loss = loss_fn(logits, y)
-    loss.backward()
-    optimizer.step()
-    
-    if epoch % 10 == 0:
-        print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
-```
-
-### CNN Example
-
-```python
-import numpy as np
-import cnn_engine as cnn
-
-# Create CNN
-model = cnn.Sequential()
-model.add(cnn.Conv2D(3, 32, 3, padding=1))
-model.add(cnn.BatchNorm2D(32))
-model.add(cnn.ReLU())
-model.add(cnn.MaxPool2D(2))
-model.add(cnn.Conv2D(32, 64, 3, padding=1))
-model.add(cnn.BatchNorm2D(64))
-model.add(cnn.ReLU())
-model.add(cnn.MaxPool2D(2))
-model.add(cnn.Flatten())
-model.add(cnn.Linear(64 * 8 * 8, 10))
-
-# Training
-optimizer = cnn.Adam(model.parameters(), lr=0.001)
-loss_fn = cnn.CrossEntropyLoss()
-
-for epoch in range(50):
     optimizer.zero_grad()
     logits = model(X)
     loss = loss_fn(logits, y)
@@ -213,244 +137,153 @@ for epoch in range(50):
 
 ## API Reference
 
-### Tensor Operations
-
-All tensor operations are accessible through the Python bindings. The core tensor type manages GPU memory automatically.
-
-```python
-# Create tensor
-x = cnn.Tensor(shape)           # Uninitialized
-x = cnn.Zeros(shape)            # Zero-initialized
-x = cnn.Ones(shape)             # Ones-initialized
-x = cnn.Randn(shape)            # Random normal
-
-# Operations
-y = x + other                   # Addition
-y = x * other                   # Element-wise multiply
-y = x @ other                   # Matrix multiply
-y = x.sum()                     # Sum reduction
-y = x.reshape(new_shape)        # Reshape
-
-# Transfer
-numpy_array = x.numpy()         # To CPU (numpy)
-x.from_numpy(numpy_array)       # From CPU
-```
-
 ### Layers
 
 | Layer | Constructor | Description |
 |-------|-------------|-------------|
-| Linear | `Linear(in_features, out_features, bias=True)` | Fully connected layer |
-| Conv2D | `Conv2D(in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True)` | 2D convolution |
-| BatchNorm2D | `BatchNorm2D(num_features, eps=1e-5, momentum=0.1)` | Batch normalization |
-| MaxPool2D | `MaxPool2D(pool_size, stride=None)` | 2D max pooling |
-| AvgPool2D | `AvgPool2D(pool_size, stride=None)` | 2D average pooling |
-| AdaptiveAvgPool2D | `AdaptiveAvgPool2D(output_size)` | Adaptive average pooling |
+| Linear | `Linear(in, out, bias=True)` | Fully connected |
+| Conv2D | `Conv2D(in_c, out_c, k, stride=1, pad=0)` | 2D convolution |
+| BatchNorm2D | `BatchNorm2D(features)` | Batch normalization |
+| MaxPool2D | `MaxPool2D(size, stride=None)` | Max pooling |
+| AdaptiveAvgPool2D | `AdaptiveAvgPool2D(h, w)` | Adaptive pooling |
 | ReLU | `ReLU()` | Rectified linear unit |
 | Sigmoid | `Sigmoid()` | Logistic activation |
 | Tanh | `Tanh()` | Hyperbolic tangent |
-| LeakyReLU | `LeakyReLU(negative_slope=0.01)` | Leaky ReLU |
+| LeakyReLU | `LeakyReLU(slope=0.01)` | Leaky ReLU |
 | GELU | `GELU()` | Gaussian error linear unit |
-| SiLU | `SiLU()` | Sigmoid linear unit (Swish) |
-| Softmax | `Softmax(dim=-1)` | Softmax activation |
-| Dropout | `Dropout(p=0.5)` | Dropout regularization |
-| Flatten | `Flatten()` | Flatten spatial dimensions |
+| SiLU | `SiLU()` | Sigmoid linear unit |
+| Softmax | `Softmax()` | Softmax activation |
+| Dropout | `Dropout(p=0.5)` | Dropout |
+| Flatten | `Flatten()` | Flatten spatial dims |
 
 ### Optimizers
 
-| Optimizer | Constructor | Description |
-|-----------|-------------|-------------|
-| SGD | `SGD(parameters, lr=0.01, momentum=0.0, weight_decay=0.0)` | Stochastic gradient descent |
-| Adam | `Adam(parameters, lr=0.001, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0)` | Adaptive moment estimation |
-| AdamW | `AdamW(parameters, lr=0.001, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.01)` | Adam with decoupled weight decay |
+| Optimizer | Constructor |
+|-----------|-------------|
+| SGD | `SGD(params, lr=0.01, momentum=0.0, weight_decay=0.0)` |
+| Adam | `Adam(params, lr=0.001, betas=(0.9, 0.999))` |
 
-### Loss Functions
+### Losses
 
-| Loss | Constructor | Description |
-|------|-------------|-------------|
-| CrossEntropyLoss | `CrossEntropyLoss(weight=None, reduction='mean')` | Cross-entropy loss |
-| MSELoss | `MSELoss(reduction='mean')` | Mean squared error |
-| BCELoss | `BCELoss(weight=None, reduction='mean')` | Binary cross-entropy |
-| L1Loss | `L1Loss(reduction='mean')` | Mean absolute error |
-
-### Model Utilities
-
-```python
-# Parameter management
-params = model.parameters()      # Get all parameters
-model.train()                    # Training mode (dropout active)
-model.eval()                     # Evaluation mode (dropout disabled)
-model.zero_grad()                # Zero all gradients
-
-# Serialization
-model.save("model.npz")          # Save weights
-model.load("model.npz")          # Load weights
-
-# Information
-print(model.summary())           # Print model architecture
-print(f"Parameters: {model.num_parameters():,}")  # Parameter count
-```
-
----
-
-## Implementation Details
-
-### Memory Model
-
-Tensors store data in GPU memory with automatic lifetime management. When a tensor is destroyed, its GPU memory is freed immediately.
-
-```
-Tensor
-├── data: float*          # GPU pointer to data
-├── grad: float*          # GPU pointer to gradients (if requires_grad)
-├── shape: vector<int>    # Tensor dimensions
-├── numel: int            # Total number of elements
-└── requires_grad: bool   # Whether to track gradients
-```
-
-### Kernel Design
-
-CUDA kernels follow these principles:
-
-1. **Coalesced memory access**: Threads access consecutive memory addresses
-2. **Shared memory usage**: Frequently accessed data is cached in shared memory
-3. **Minimal synchronization**: `__syncthreads()` only when necessary
-4. **Occupancy**: Block sizes chosen to maximize GPU utilization
-
-Example convolution kernel:
-
-```cuda
-__global__ void conv2d_forward_kernel(
-    const float* input, const float* weight, const float* bias,
-    float* output,
-    int batch, int in_channels, int out_channels,
-    int in_h, int in_w, int k_size, int stride, int pad)
-{
-    int out_h = (in_h + 2 * pad - k_size) / stride + 1;
-    int out_w = (in_w + 2 * pad - k_size) / stride + 1;
-
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int total = batch * out_channels * out_h * out_w;
-    if (idx >= total) return;
-
-    // Decode 4D index to (batch, channel, height, width)
-    int tmp = idx;
-    int w = tmp % out_w; tmp /= out_w;
-    int h = tmp % out_h; tmp /= out_h;
-    int oc = tmp % out_channels; tmp /= out_channels;
-    int b = tmp;
-
-    float sum = bias ? bias[oc] : 0.0f;
-
-    for (int ic = 0; ic < in_channels; ++ic) {
-        for (int kh = 0; kh < k_size; ++kh) {
-            for (int kw = 0; kw < k_size; ++kw) {
-                int ih = h * stride + kh - pad;
-                int iw = w * stride + kw - pad;
-                if (ih >= 0 && ih < in_h && iw >= 0 && iw < in_w) {
-                    int in_idx = ((b * in_channels + ic) * in_h + ih) * in_w + iw;
-                    int w_idx = ((oc * in_channels + ic) * k_size + kh) * k_size + kw;
-                    sum += input[in_idx] * weight[w_idx];
-                }
-            }
-        }
-    }
-    output[idx] = sum;
-}
-```
-
-### Numerical Stability
-
-- **Softmax**: Max-subtraction trick to prevent overflow
-- **Sigmoid**: Input clamping to [-50, 50] to avoid exp() overflow
-- **Batch Norm**: Small epsilon added to variance for numerical stability
+| Loss | Constructor |
+|------|-------------|
+| CrossEntropyLoss | `CrossEntropyLoss()` |
+| MSELoss | `MSELoss()` |
 
 ---
 
 ## Roadmap
 
-### Current Release (v0.1.0)
+### v0.1.0 — Current
 
 - [x] Core tensor operations
 - [x] Autograd engine
-- [x] Linear, Conv2D, BatchNorm layers
-- [x] 10+ activation functions
-- [x] SGD, Adam, AdamW optimizers
-- [x] Cross-entropy, MSE, BCE losses
+- [x] 14 layer types
+- [x] SGD, Adam optimizers
+- [x] CrossEntropy, MSE losses
 - [x] Python bindings
 - [x] Test suite
-- [x] Benchmark suite
+- [x] Benchmarks
 - [x] CI/CD pipeline
 
-### Planned (v0.2.0)
+### v0.2.0 — Next
 
-- [ ] Residual blocks (ResNet)
+- [ ] Residual blocks (ResNet-18/34/50)
 - [ ] Recurrent layers (LSTM, GRU)
-- [ ] Transformer components (attention, multi-head attention)
+- [ ] Transformer components (self-attention, multi-head attention)
 - [ ] Mixed precision training (FP16/BF16)
-- [ ] Learning rate schedulers
-- [ ] Data augmentation utilities
-- [ ] Model serialization (ONNX export)
+- [ ] Learning rate schedulers (Step, Cosine, Warmup)
+- [ ] Data augmentation (flip, rotate, normalize)
+- [ ] Model serialization (save/load weights)
+- [ ] Improved kernel performance (tiling, shared memory)
 
-### Future
+### v0.3.0
 
 - [ ] Multi-GPU training (NCCL)
 - [ ] TensorRT inference backend
+- [ ] ONNX export
 - [ ] Distributed training
-- [ ] Quantization support
+- [ ] Quantization (INT8)
+
+### Future
+
 - [ ] Mobile deployment
+- [ ] WebAssembly/WebGPU backend
+- [ ] Julia/Rust bindings
+- [ ] Visualization dashboard
+- [ ] Integration with HuggingFace datasets
 
 ---
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 ```bash
+# Quick start
 git clone https://github.com/chinmayasameeru/cuda-neural-network-engine.git
 cd cuda-neural-network-engine
-
-# Install development dependencies
 pip install pybind11 numpy pytest black flake8
-
-# Run tests
 make test
-
-# Run benchmarks
-make benchmark
-
-# Lint
 make lint
 ```
-
----
-
-## License
-
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## Acknowledgments
-
-- NVIDIA for CUDA and cuBLAS
-- The PyTorch project for API design inspiration
-- The deep learning systems community for research and education
 
 ---
 
 ## FAQ
 
 **Q: How does this compare to PyTorch?**
-A: PyTorch is a mature, production-ready framework with extensive optimizations, a large ecosystem, and community support. This engine is a learning resource that implements core concepts from scratch for educational purposes.
+A: PyTorch is production-ready with extensive optimizations and a large ecosystem. This engine is a learning resource that implements core concepts directly in CUDA for educational purposes.
 
-**Q: Can I use this for production workloads?**
-A: No. This project is for research and education. Use PyTorch, TensorFlow, or JAX for production.
+**Q: Can I use this for production?**
+A: No. Use PyTorch, TensorFlow, or JAX for production workloads.
 
-**Q: Why implement everything from scratch?**
-A: To understand how GPU-accelerated deep learning works at the systems level. Reading source code is one of the best ways to learn.
+**Q: Why implement from scratch?**
+A: To understand GPU-accelerated deep learning at the systems level. Reading and writing source code is one of the best ways to learn.
 
 **Q: What GPU do I need?**
-A: Any NVIDIA GPU with Compute Capability ≥ 6.0 (GTX 10xx series or newer). More memory allows larger models and batch sizes.
+A: Any NVIDIA GPU with Compute Capability ≥ 6.0 (GTX 10xx series or newer). More memory allows larger models.
+
+**Q: Does this support CPU-only mode?**
+A: No. This engine requires an NVIDIA GPU. For CPU fallback, use PyTorch.
+
+**Q: How do I debug CUDA errors?**
+A: Compile with `nvcc -G` for debug info, then use `cuda-gdb` or `compute-sanitizer` to find memory errors.
+
+**Q: Can I contribute without a GPU?**
+A: Yes! Documentation, testing, API design, and code review contributions are valuable. CI runs on CPU for linting.
+
+**Q: What CUDA version is required?**
+A: CUDA 12.x. The code uses features available in CUDA 11.0+.
+
+**Q: Is Windows supported?**
+A: Linux is the primary target. Windows may work with Visual Studio and CUDA Toolkit but is not officially tested.
+
+**Q: How do I add a new layer?**
+A: 1) Define class in `include/layers.h`, 2) Implement forward/backward in `src/layers.cpp`, 3) Add Python binding in `bindings/python_bindings.cpp`, 4) Add tests.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## Acknowledgments
+
+This project builds upon the work of many:
+
+- **NVIDIA** — CUDA Toolkit, cuBLAS, cuDNN, and the GPU computing ecosystem
+- **PyTorch Team** — API design inspiration and the autograd paradigm
+- **Andrej Karpathy** — micrograd and educational resources on neural network internals
+- **UVM (Unified Virtual Memory)** — for simplifying memory management patterns
+- **The CUDA Programming Guide** — for optimization techniques and best practices
+- **OpenBLAS/MKL** — for CPU-side reference implementations
+- **The open-source community** — for countless tutorials, papers, and discussions that make projects like this possible
+
+Special thanks to everyone who has contributed code, filed issues, and provided feedback.
+
+---
+
+*This project is for educational purposes. Not affiliated with NVIDIA Corporation.*
