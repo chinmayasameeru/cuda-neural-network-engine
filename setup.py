@@ -18,6 +18,8 @@ setup(
                 "src/optimizers.cpp",
                 "src/advanced_layers.cpp",
                 "src/schedulers.cpp",
+                "src/attention.cpp",
+                "src/serializer.cpp",
             ],
             include_dirs=["include", cuda_include, "/usr/include/python3.10"],
             library_dirs=[cuda_lib],

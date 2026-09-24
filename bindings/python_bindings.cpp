@@ -70,6 +70,8 @@ public:
             if (args.size() >= 2) model_.add<GRUCell>(args[0], args[1]);
         } else if (type == "LayerNorm") {
             if (args.size() >= 1) model_.add<LayerNorm>(args[0]);
+        } else if (type == "MultiHeadAttention") {
+            if (args.size() >= 2) model_.add<MultiHeadAttention>(args[0], args[1]);
         }
     }
 
@@ -148,6 +150,9 @@ PYBIND11_MODULE(cnn_engine, m) {
 
     py::class_<LayerNorm, std::shared_ptr<LayerNorm>>(m, "LayerNorm")
         .def(py::init<int, float>(), py::arg("normalized_shape"), py::arg("eps") = 1e-5f);
+
+    py::class_<MultiHeadAttention, std::shared_ptr<MultiHeadAttention>>(m, "MultiHeadAttention")
+        .def(py::init<int, int, float>(), py::arg("embed_dim"), py::arg("num_heads"), py::arg("dropout") = 0.0f);
 
     // Optimizers
     py::class_<SGD, std::shared_ptr<SGD>>(m, "SGD")
