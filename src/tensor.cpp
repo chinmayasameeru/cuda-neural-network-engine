@@ -1,4 +1,3 @@
-// CUDA Neural Network Engine — Tensor Implementation
 #include "tensor.h"
 #include <algorithm>
 #include <cstring>
@@ -12,16 +11,9 @@ Tensor::Tensor(const std::vector<int>& shape_, bool requires_grad_)
     for (int s : shape) numel *= s;
 
     if (numel > 0) {
-        cudaError_t err = cudaMalloc(&data, numel * sizeof(float));
-        if (err != cudaSuccess)
-            throw std::runtime_error("Failed to allocate GPU memory for tensor data");
-
+        data = static_cast<float*>(MemoryArena::instance().allocate(numel * sizeof(float)));
         if (requires_grad) {
-            err = cudaMalloc(&grad, numel * sizeof(float));
-            if (err != cudaSuccess) {
-                cudaFree(data);
-                throw std::runtime_error("Failed to allocate GPU memory for tensor grad");
-            }
+            grad = static_cast<float*>(MemoryArena::instance().allocate(numel * sizeof(float)));
             cudaMemset(grad, 0, numel * sizeof(float));
         }
     }
@@ -29,46 +21,38 @@ Tensor::Tensor(const std::vector<int>& shape_, bool requires_grad_)
 
 Tensor::~Tensor() {
     if (data) {
-        cudaFree(data);
+        MemoryArena::instance().deallocate(data, numel * sizeof(float));
         data = nullptr;
     }
     if (grad) {
-        cudaFree(grad);
+        MemoryArena::instance().deallocate(grad, numel * sizeof(float));
         grad = nullptr;
     }
 }
 
-Tensor::Tensor(Tensor&& other) noexcept
-    : data(other.data), grad(other.grad),
-      shape(std::move(other.shape)), numel(other.numel),
-      requires_grad(other.requires_grad),
-      backward_fn(std::move(other.backward_fn)),
-      prev(std::move(other.prev))
+Tensor::Tensor(Tensor&& o) noexcept
+    : data(o.data), grad(o.grad), shape(std::move(o.shape)),
+      numel(o.numel), requires_grad(o.requires_grad),
+      backward_fn(std::move(o.backward_fn)), prev(std::move(o.prev))
 {
-    other.data = nullptr;
-    other.grad = nullptr;
+    o.data = nullptr;
+    o.grad = nullptr;
 }
 
-Tensor& Tensor::operator=(Tensor&& other) noexcept {
-    if (this != &other) {
+Tensor& Tensor::operator=(Tensor&& o) noexcept {
+    if (this != &o) {
         this->~Tensor();
-        data = other.data;
-        grad = other.grad;
-        shape = std::move(other.shape);
-        numel = other.numel;
-        requires_grad = other.requires_grad;
-        backward_fn = std::move(other.backward_fn);
-        prev = std::move(other.prev);
-        other.data = nullptr;
-        other.grad = nullptr;
+        data = o.data; grad = o.grad;
+        shape = std::move(o.shape);
+        numel = o.numel; requires_grad = o.requires_grad;
+        backward_fn = std::move(o.backward_fn); prev = std::move(o.prev);
+        o.data = nullptr; o.grad = nullptr;
     }
     return *this;
 }
 
 void Tensor::zero_grad() {
-    if (grad) {
-        cudaMemset(grad, 0, numel * sizeof(float));
-    }
+    if (grad) cudaMemset(grad, 0, numel * sizeof(float));
 }
 
 std::vector<float> Tensor::to_cpu() const {
@@ -89,6 +73,13 @@ void Tensor::backward() {
     for (auto& p : prev) {
         if (p && p->requires_grad) p->backward();
     }
+}
+
+float Tensor::item() const {
+    if (numel != 1) throw std::runtime_error("item() only for scalar tensors");
+    float v;
+    cudaMemcpy(&v, data, sizeof(float), cudaMemcpyDeviceToHost);
+    return v;
 }
 
 void Tensor::print(const std::string& name, int max_elems) const {
