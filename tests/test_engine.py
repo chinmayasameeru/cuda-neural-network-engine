@@ -2,14 +2,16 @@
 """
 CUDA Neural Network Engine — Test Suite
 """
+
 import numpy as np
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 try:
     import cnn_engine as cnn
+
     HAS_CUDA = True
 except ImportError:
     HAS_CUDA = False
@@ -118,7 +120,7 @@ def test_mnist_loop():
     assert logits.shape == (32, 10)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Running CUDA Neural Network Engine tests...\n")
     test_sequential()
     test_forward()
